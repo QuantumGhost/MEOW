@@ -25,8 +25,10 @@ func main() {
 
 	parseConfig(cmdLineConfig.RcFile, cmdLineConfig)
 	if config.AuthDB != "" {
-		fmt.Printf("Using database %s as auth info storage.", config.AuthDB)
-		auth.storage = NewSQLiteStorage(config.AuthDB)
+		fmt.Printf(
+			"Using database %s.%s as auth info storage.", 
+			config.AuthDB, config.AuthDBTable)
+		auth.storage = NewSQLiteStorage(config.AuthDB, config.AuthDBTable)
 	} else {
 		auth.storage = NewMemoryStorage()
 		fmt.Println("Reading auth info from config file...")

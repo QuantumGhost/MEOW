@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"errors"
 	_ "github.com/mattn/go-sqlite3"
 	
@@ -65,11 +66,13 @@ func (storage *MemoryStorage) Deactivate(username string) error {
 // store all password in a given database.
 type SQLiteStorage struct {
 	file string
+	tablename string
 	conn *sql.DB
 }
 
-func NewSQLiteStorage(file string) *SQLiteStorage {
+func NewSQLiteStorage(file string, tablename string) *SQLiteStorage {
 	storage := new(SQLiteStorage)
+	storage.tablename = tablename
 	storage.file = file
 	storage.setup()
 	return storage
@@ -84,10 +87,9 @@ func (self *SQLiteStorage) setup() {
 }
 
 func (self *SQLiteStorage) Get(username string) (*authUser, error) {
-	const SELECT_SQL = `
-	SELECT password, port FROM auth 
-	WHERE username=? AND active = 1 LIMIT 1
-	`
+	var SELECT_SQL = fmt.Sprintf(
+		`SELECT password, port FROM %s 
+		WHERE username=? AND active = 1 LIMIT 1`, self.tablename)
 
 	var password string 
 	var port uint16

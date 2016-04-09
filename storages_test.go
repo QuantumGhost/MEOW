@@ -6,7 +6,7 @@ import (
 )
 
 func TestSQLiteStorage(t *testing.T) {
-	storage := NewSQLiteStorage(":memory:")
+	storage := NewSQLiteStorage(":memory:", "auth")
 	conn := storage.conn
 	
 	// migrate database.

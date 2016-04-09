@@ -40,6 +40,7 @@ type Config struct {
 	UserPasswd     string
 	UserPasswdFile string // file that contains user:passwd:[port] pairs
 	AuthDB         string // database path of auth info
+	AuthDBTable    string // auth table name
 	AllowedClient  string
 	AuthTimeout    time.Duration
 
@@ -99,6 +100,7 @@ func parseCmdLineConfig() *Config {
 	flag.StringVar(&c.Cert, "cert", "", "cert for local https proxy")
 	flag.StringVar(&c.Key, "key", "", "key for local https proxy")
 	flag.StringVar(&c.AuthDB, "db", "", "Auth info database file.")
+	flag.StringVar(&c.AuthDBTable, "dbtable", "auth", "table contains auth info")
 
 	flag.Parse()
 
