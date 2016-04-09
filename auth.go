@@ -35,15 +35,14 @@ type netAddr struct {
 
 type authUser struct {
 	// user name is the key to auth.user, no need to store here
-	passwd string
+	passwd string // TODO: no longer needed, remove later.
 	ha1    string // used in request digest, initialized ondemand
 	port   uint16 // 0 means any port
 }
 
 var auth struct {
+	storage AuthStorage
 	required bool
-
-	user map[string]*authUser
 
 	allowedClient []netAddr
 
@@ -126,10 +125,10 @@ func addUserPasswd(val string) {
 	if err != nil {
 		Fatal(err)
 	}
-	if _, ok := auth.user[user]; ok {
+	if _, ok := auth.storage.Get(user); ok == nil {
 		Fatal("duplicate user:", user)
 	}
-	auth.user[user] = au
+	auth.storage.Set(user, au.passwd, au.port, true)
 }
 
 func loadUserPasswdFile(file string) {
@@ -158,10 +157,6 @@ func initAuth() {
 		return
 	}
 
-	auth.user = make(map[string]*authUser)
-
-	addUserPasswd(config.UserPasswd)
-	loadUserPasswdFile(config.UserPasswdFile)
 	parseAllowedClient(config.AllowedClient)
 
 	auth.authed = NewTimeoutSet(time.Duration(config.AuthTimeout) * time.Hour)
@@ -213,6 +208,7 @@ func authIP(clientIP string) bool {
 }
 
 func genNonce() string {
+	// TODO: 重写 genNonce，使用 /dev/urandom 作为随机数来源
 	buf := new(bytes.Buffer)
 	fmt.Fprintf(buf, "%x", time.Now().Unix())
 	return buf.String()
@@ -274,11 +270,16 @@ func authBasic(conn *clientConn, userPasswd string) error {
 	user := arr[0]
 	passwd := arr[1]
 
-	au, ok := auth.user[user]
-	if !ok || au.passwd != passwd {
+	au, ok := auth.storage.Get(user)
+	if ok == userNotExist {
 		return errAuthRequired
 	}
-	return authPort(conn, user, au)
+	
+	if passwd == au.passwd {
+		return authPort(conn, user, au)
+	}
+	errl.Printf("cli(%s) auth: incorrect password", conn.RemoteAddr())
+	return errAuthRequired
 }
 
 func authDigest(conn *clientConn, r *Request, keyVal string) error {
@@ -297,8 +298,9 @@ func authDigest(conn *clientConn, r *Request, keyVal string) error {
 	}
 
 	user := authHeader["username"]
-	au, ok := auth.user[user]
-	if !ok {
+	au, exists := auth.storage.Get(user)
+	
+	if exists == userNotExist {
 		errl.Printf("cli(%s) auth: no such user: %s\n", conn.RemoteAddr(), authHeader["username"])
 		return errAuthRequired
 	}

@@ -24,6 +24,15 @@ func main() {
 	fmt.Println()
 
 	parseConfig(cmdLineConfig.RcFile, cmdLineConfig)
+	if config.AuthDB != "" {
+		fmt.Printf("Using database %s as auth info storage.", config.AuthDB)
+		auth.storage = NewSQLiteStorage(config.AuthDB)
+	} else {
+		auth.storage = NewMemoryStorage()
+		fmt.Println("Reading auth info from config file...")
+		addUserPasswd(config.UserPasswd)
+		loadUserPasswdFile(config.UserPasswdFile)
+	}
 
 	initSelfListenAddr()
 	initLog()

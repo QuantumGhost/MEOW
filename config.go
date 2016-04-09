@@ -39,6 +39,7 @@ type Config struct {
 	// authenticate client
 	UserPasswd     string
 	UserPasswdFile string // file that contains user:passwd:[port] pairs
+	AuthDB         string // database path of auth info
 	AllowedClient  string
 	AuthTimeout    time.Duration
 
@@ -97,6 +98,7 @@ func parseCmdLineConfig() *Config {
 	flag.BoolVar(&c.PrintVer, "version", false, "print version")
 	flag.StringVar(&c.Cert, "cert", "", "cert for local https proxy")
 	flag.StringVar(&c.Key, "key", "", "key for local https proxy")
+	flag.StringVar(&c.AuthDB, "db", "", "Auth info database file.")
 
 	flag.Parse()
 
@@ -107,6 +109,13 @@ func parseCmdLineConfig() *Config {
 	}
 	if err := isFileExists(c.RcFile); err != nil {
 		Fatal("fail to get config file:", err)
+	}
+	
+	if c.AuthDB != "" {
+		c.AuthDB = expandTilde(c.AuthDB)
+		if err := isFileExists(c.AuthDB); err != nil {
+			Fatal("Given Auth Database file does not exist.", err)
+		}
 	}
 	initConfig(c.RcFile)
 	initDomainList(config.DirectFile, domainTypeDirect)
